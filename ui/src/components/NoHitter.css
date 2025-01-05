@@ -1,0 +1,92 @@
+.grid {
+    margin: 20px auto;
+    width: 80%;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+table th,
+table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+}
+
+table th {
+    background-color: #003b5c; 
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+table td {
+    font-size: 1rem;
+    color: #333333; 
+}
+
+table tr:hover {
+    background-color: #f1f1f1; 
+}
+
+.select-container {
+    margin: 20px auto;
+    width: 200px;
+}
+
+.select-container select {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid #003b5c; 
+    background-color: #ffffff;
+    color: #003b5c;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.select-container select:hover,
+.select-container select:focus {
+    background-color: #f0f8ff; 
+    border-color: #cc0000; 
+}
+
+.select-container label {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #003b5c;
+    margin-bottom: 5px;
+    display: block;
+    text-align: center;
+}
+
+.button {
+    background-color: #003b5c; 
+    color: #ffffff;
+    padding: 10px 20px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: #cc0000;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
