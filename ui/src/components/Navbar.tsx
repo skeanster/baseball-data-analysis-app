@@ -15,23 +15,24 @@ const Navbar = ({ updateAppPage }) => {
                     <img className="logo" src={githubLogo} alt="github icon" />
                 </a>
                 <div className="navItemsContainer">
-                    <div>
-                        <div
-                            className="navItems"
-                            id="home"
-                            onClick={() => updateAppPage(PAGES.home)}
-                        >
-                            Home
-                        </div>
+                    <div
+                        className="navItems"
+                        id="home"
+                        onClick={() => updateAppPage(PAGES.home)}
+                    >
+                        Home
                     </div>
-                    <div>
-                        <div
-                            className="navItems"
-                            id="products"
-                            onClick={() => updateAppPage(PAGES.no_hitter)}
-                        >
-                            No Hitter
-                        </div>
+                    <div
+                        className="navItems"
+                        onClick={() => updateAppPage(PAGES.no_hitter)}
+                    >
+                        No Hitter
+                    </div>
+                    <div
+                        className="navItems"
+                        onClick={() => updateAppPage(PAGES.batter_performance)}
+                    >
+                        Batter Stats
                     </div>
                 </div>
             </div>
