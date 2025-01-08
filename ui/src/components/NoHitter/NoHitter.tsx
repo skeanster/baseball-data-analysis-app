@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./NoHitter.css";
+import { PITCH_RESULT } from "../../constants";
 
 interface PitchTypeStats {
     [inning: string]: {
@@ -16,11 +17,68 @@ interface PitchTypeStats {
     };
 }
 
-const compilePitchTypeData = (pitchData) => {
-    return pitchData.reduce(
-        (
-            stats,
-            {
+const generateInningsList = () => {
+    const innings: string[] = [];
+    for (let i = 1; i <= 9; i++) {
+        innings.push(`Inning ${i}`);
+    }
+    return innings;
+};
+
+const NoHitter = ({ updateAppPage }) => {
+    const [restOfMonthGridData, setRestOfMonthGridData] = useState({});
+    const [noHitterPitchGridData, setNoHitterPitchGridData] = useState({});
+    const [selectedPitchType, setSelectedPitchType] = useState("SL");
+    const [pitchTypes, setPitchTypes] = useState([]);
+
+    const fetchAndSetData = (url, setData) => {
+        const getPitchTypesUsed = (pitchData) => {
+            const pitchesUsed = new Set(pitchTypes);
+            for (const pitch of pitchData) {
+                if (pitch.pitch_type !== null) {
+                    pitchesUsed.add(pitch.pitch_type);
+                }
+            }
+
+            setPitchTypes((prevPitchTypes) => [
+                ...new Set([...prevPitchTypes, ...pitchesUsed]),
+            ]);
+        };
+
+        fetch(url)
+            .then((res) => res.json())
+            .then((pitchData) => {
+                const pitchTypeStats: PitchTypeStats =
+                    compilePitchTypeData(pitchData);
+                Object.values(pitchTypeStats).forEach((inningData) => {
+                    Object.values(inningData).forEach((data) => {
+                        if (data.countSpeed > 0) {
+                            data.averageSpeed =
+                                data.totalSpeed / data.countSpeed;
+                            data.averageSpinRate = Math.round(
+                                data.totalSpinRate / data.countSpeed
+                            );
+                        }
+                    });
+                });
+                setData(pitchTypeStats);
+                getPitchTypesUsed(pitchData);
+            });
+    };
+
+    useEffect(() => {
+        fetchAndSetData("/pitchdata/no_hitter", setNoHitterPitchGridData);
+        fetchAndSetData(
+            "/pitchdata/no_hitter/rest_of_month",
+            setRestOfMonthGridData
+        );
+    }, []);
+
+    const compilePitchTypeData = (pitchData) => {
+        const stats = {};
+
+        for (const pitch of pitchData) {
+            const {
                 inning,
                 pitch_type,
                 pitch_result,
@@ -28,9 +86,14 @@ const compilePitchTypeData = (pitchData) => {
                 called_strike,
                 swinging_strike,
                 spin_rate,
+            } = pitch;
+
+            // create an object for each inning
+            if (!stats[inning]) {
+                stats[inning] = {};
             }
-        ) => {
-            if (!stats[inning]) stats[inning] = {};
+
+            // create an object for each pitch type used in that inning
             if (!stats[inning][pitch_type]) {
                 stats[inning][pitch_type] = {
                     thrown: 0,
@@ -44,67 +107,72 @@ const compilePitchTypeData = (pitchData) => {
             }
 
             const pitchStats = stats[inning][pitch_type];
-            pitchStats.thrown += 1;
-            if (pitch_result === "Ball") pitchStats.balls += 1;
-            if (called_strike === "TRUE") pitchStats.calledStrikes += 1;
-            if (swinging_strike === "TRUE" && pitch_result !== "Foul Tip")
-                pitchStats.swingAndMiss += 1;
+            pitchStats.thrown++;
+            if (pitch_result === PITCH_RESULT.ball) pitchStats.balls++;
+            if (called_strike === "TRUE") pitchStats.calledStrikes++;
+            if (
+                swinging_strike === "TRUE" &&
+                pitch_result !== PITCH_RESULT.foul_tip
+            ) {
+                pitchStats.swingAndMiss++;
+            }
             pitchStats.totalSpeed += rel_speed;
             pitchStats.totalSpinRate += spin_rate;
-            pitchStats.countSpeed += 1;
+            pitchStats.countSpeed++;
+        }
 
-            return stats;
-        },
-        {}
-    );
-};
+        return stats;
+    };
 
-const NoHitter = ({ updateAppPage }) => {
-    const [pitchTypeGridData, setPitchTypeGridData] = useState({});
-    const [selectedPitchType, setSelectedPitchType] = useState("SL");
-    const [pitchTypes, setPitchTypes] = useState([]);
+    const renderPitchingDataTable = (rawData, header) => {
+        const innings = generateInningsList();
+        const rows = [
+            { key: "thrown", label: "Thrown" },
+            { key: "averageSpeed", label: "Average Speed" },
+            { key: "averageSpinRate", label: "Average Spin Rate" },
+            { key: "calledStrikes", label: "Called Strikes" },
+            { key: "swingAndMiss", label: "Swing and Miss" },
+            { key: "balls", label: "Balls" },
+        ];
 
-    useEffect(() => {
-        fetch("/pitchdata/no_hitter")
-            .then((res) => res.json())
-            .then((pitchData) => {
-                const pitchTypeStats: PitchTypeStats =
-                    compilePitchTypeData(pitchData);
-                Object.values(pitchTypeStats).forEach((inningData) =>
-                    Object.values(inningData).forEach((data) => {
-                        if (data.countSpeed > 0)
-                            data.averageSpeed =
-                                data.totalSpeed / data.countSpeed;
-                        if (data.countSpeed > 0)
-                            data.averageSpinRate = Math.round(
-                                data.totalSpinRate / data.countSpeed
-                            );
-                    })
-                );
-                setPitchTypeGridData(pitchTypeStats);
-                // @ts-ignore todo: make interface
-                setPitchTypes([
-                    ...new Set(
-                        pitchData
-                            .map((pitch) => pitch.pitch_type)
-                            .filter(Boolean)
-                    ),
-                ]);
-            });
-    }, []);
-
-    const innings = Array.from(
-        { length: 9 },
-        (_, index) => `Inning ${index + 1}`
-    );
-    const rows = [
-        { key: "thrown", label: "Thrown" },
-        { key: "averageSpeed", label: "Average Speed" },
-        { key: "averageSpinRate", label: "Average Spin Rate" },
-        { key: "calledStrikes", label: "Called Strikes" },
-        { key: "swingAndMiss", label: "Swing and Miss" },
-        { key: "balls", label: "Balls" },
-    ];
+        return (
+            <div className="grid-section">
+                <h2>{header}</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metrics</th>
+                            {innings.map((inning, index) => (
+                                <th key={index}>{inning}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((row) => (
+                            <tr key={row.key}>
+                                <td>{row.label}</td>
+                                {innings.map((inning, index) => {
+                                    const inningData =
+                                        rawData[
+                                            inning.replace("Inning ", "")
+                                        ] || {};
+                                    const pitchData =
+                                        inningData[selectedPitchType] || {};
+                                    const value =
+                                        row.key === "averageSpeed"
+                                            ? pitchData.averageSpeed?.toFixed(
+                                                  2
+                                              ) || 0
+                                            : pitchData[row.key] || 0;
+                                    return <td key={index}>{value}</td>;
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>{" "}
+            </div>
+        );
+    };
 
     return (
         <div className="grid">
@@ -115,46 +183,19 @@ const NoHitter = ({ updateAppPage }) => {
                     value={selectedPitchType}
                     onChange={(e) => setSelectedPitchType(e.target.value)}
                 >
-                    {pitchTypes.map((pitchType, index) => (
-                        <option key={index} value={pitchType}>
+                    {pitchTypes.map((pitchType) => (
+                        <option key={pitchType} value={pitchType}>
                             {pitchType}
                         </option>
                     ))}
                 </select>
             </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Metrics</th>
-                        {innings.map((inning, index) => (
-                            <th key={index}>{inning}</th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((row, rowIndex) => (
-                        <tr key={rowIndex}>
-                            <td>{row.label}</td>
-                            {innings.map((inning, inningIndex) => {
-                                const inningData =
-                                    pitchTypeGridData[
-                                        inning.replace("Inning ", "")
-                                    ] || {};
-                                const pitchData =
-                                    inningData[selectedPitchType] || {};
-                                const value =
-                                    row.key === "averageSpeed"
-                                        ? pitchData.averageSpeed?.toFixed(2) ||
-                                          0
-                                        : pitchData[row.key] || 0;
-
-                                return <td key={inningIndex}>{value}</td>;
-                            })}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {renderPitchingDataTable(noHitterPitchGridData, "No Hitter")}
+            {renderPitchingDataTable(
+                restOfMonthGridData,
+                "Rest of Cease's Month"
+            )}
         </div>
     );
 };

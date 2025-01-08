@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from "chart.js";
 import "./BatterPerformance.css";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend, Title);
+
+const generateRandomColor = () => {
+    const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+    return randomColor;
+};
 
 const BatterPerformance = () => {
     const [selectedBatter, setSelectedBatter] = useState("");
@@ -82,13 +87,6 @@ const BatterPerformance = () => {
         });
     };
 
-    const generateRandomColor = () => {
-        const randomColor = `#${Math.floor(Math.random() * 16777215).toString(
-            16
-        )}`;
-        return randomColor;
-    };
-
     const generatePieChartData = (batterData) => {
         const swingData = batterData.filter((pitch) => pitch.swing === "TRUE");
 
@@ -112,22 +110,32 @@ const BatterPerformance = () => {
         });
     };
 
-    return (
-        <div className="batterPerformanceContainer">
-            <div className="pitchTypeSelector">
-                <label htmlFor="pitchType">Select Batter: </label>
-                <select
-                    id="pitchType"
-                    value={selectedBatter}
-                    onChange={(e) => setSelectedBatter(e.target.value)}
-                >
-                    {battersList.map(({ batter_id, batter_name }) => (
-                        <option key={batter_id} value={batter_id}>
-                            {batter_name}
-                        </option>
-                    ))}
-                </select>
+    const renderPieChart = () => {
+        return (
+            <div className="pieChartContainer">
+                {" "}
+                <div className="pieChartLabel"></div>
+                {pieChartData.datasets &&
+                    pieChartData.datasets[0].data.length > 0 && (
+                        <Pie
+                            data={pieChartData}
+                            options={{
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: "# of Times Swung at Each Pitch Type",
+                                    },
+                                },
+                                cutout: "60%",
+                            }}
+                        />
+                    )}
             </div>
+        );
+    };
+
+    const renderHitterDataTable = () => {
+        return (
             <table>
                 <thead>
                     <tr>
@@ -154,15 +162,27 @@ const BatterPerformance = () => {
                     </tr>
                 </tbody>
             </table>
-            <div className="pieChartContainer">
-                <div className="pieChartLabel">
-                    # of times swung at each pitch type
-                </div>
-                {pieChartData.datasets &&
-                    pieChartData.datasets[0].data.length > 0 && (
-                        <Pie data={pieChartData} />
-                    )}{" "}
+        );
+    };
+
+    return (
+        <div className="batterPerformanceContainer">
+            <div className="pitchTypeSelector">
+                <label htmlFor="pitchType">Select Batter: </label>
+                <select
+                    id="pitchType"
+                    value={selectedBatter}
+                    onChange={(e) => setSelectedBatter(e.target.value)}
+                >
+                    {battersList.map(({ batter_id, batter_name }) => (
+                        <option key={batter_id} value={batter_id}>
+                            {batter_name}
+                        </option>
+                    ))}
+                </select>
             </div>
+            {renderHitterDataTable()}
+            {renderPieChart()}
         </div>
     );
 };
