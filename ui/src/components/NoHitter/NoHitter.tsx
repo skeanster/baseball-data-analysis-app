@@ -17,22 +17,18 @@ interface PitchTypeStats {
     };
 }
 
-const generateInningsList = () => {
-    const innings: string[] = [];
-    for (let i = 1; i <= 9; i++) {
-        innings.push(`Inning ${i}`);
-    }
-    return innings;
-};
-
 const NoHitter = () => {
-    const [restOfMonthGridData, setRestOfMonthGridData] = useState({});
+    const [restMonthGridData, setRestMonthGridData] = useState({});
     const [noHitterPitchGridData, setNoHitterPitchGridData] = useState({});
     const [selectedPitchType, setSelectedPitchType] = useState("SL");
     const [pitchTypes, setPitchTypes] = useState([]);
 
-    const fetchAndSetData = async (url, setData) => {
-        const response = await fetch(url);
+    const fetchAndSetData = async (url, setData, requestWholeMonth) => {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ requestWholeMonth: requestWholeMonth }),
+        });
         const pitchData = await response.json();
         const pitchTypeStats: PitchTypeStats = compilePitchTypeData(pitchData);
 
@@ -50,11 +46,12 @@ const NoHitter = () => {
     };
 
     useEffect(() => {
-        fetchAndSetData("/pitchdata/no_hitter", setNoHitterPitchGridData);
         fetchAndSetData(
-            "/pitchdata/no_hitter/rest_of_month",
-            setRestOfMonthGridData
+            "/pitchdata/no_hitter",
+            setNoHitterPitchGridData,
+            false
         );
+        fetchAndSetData("/pitchdata/no_hitter", setRestMonthGridData, true);
     }, []);
 
     const compilePitchTypeData = (pitchData) => {
@@ -73,9 +70,7 @@ const NoHitter = () => {
             } = pitch;
 
             // create an object for each inning
-            if (!stats[inning]) {
-                stats[inning] = {};
-            }
+            if (!stats[inning]) stats[inning] = {};
 
             // create an object for each pitch type used in that inning
             if (!stats[inning][pitch_type]) {
@@ -104,9 +99,7 @@ const NoHitter = () => {
             pitchStats.totalSpinRate += spin_rate;
             pitchStats.countSpeed++;
 
-            if (pitch.pitch_type !== null) {
-                pitchesUsed.add(pitch.pitch_type);
-            }
+            if (pitch.pitch_type !== null) pitchesUsed.add(pitch.pitch_type);
         }
 
         setPitchTypes((prevPitchTypes) => [
@@ -117,7 +110,6 @@ const NoHitter = () => {
     };
 
     const renderPitchingDataTable = (rawData, header) => {
-        const innings = generateInningsList();
         const rows = [
             { key: "thrown", label: "Thrown" },
             { key: "averageSpeed", label: "Average Speed" },
@@ -127,6 +119,28 @@ const NoHitter = () => {
             { key: "balls", label: "Balls" },
         ];
 
+        const renderInningHeaders = () => {
+            const cells = [];
+            for (let i = 1; i <= 9; i++) {
+                cells.push(<th key={i}>Inning {i}</th>);
+            }
+            return cells;
+        };
+
+        const renderInningCells = (rowKey) => {
+            const cells = [];
+            for (let i = 1; i <= 9; i++) {
+                const inningData = rawData[i] || {};
+                const inningPitchData = inningData[selectedPitchType] || {};
+                const value =
+                    rowKey === "averageSpeed"
+                        ? inningPitchData.averageSpeed?.toFixed(2) || 0
+                        : inningPitchData[rowKey] || 0;
+                cells.push(<td key={i}>{value}</td>);
+            }
+            return cells;
+        };
+
         return (
             <div className="grid-section">
                 <h2>{header}</h2>
@@ -134,34 +148,18 @@ const NoHitter = () => {
                     <thead>
                         <tr>
                             <th>Metrics</th>
-                            {innings.map((inning, index) => (
-                                <th key={index}>{inning}</th>
-                            ))}
+                            {renderInningHeaders()}
                         </tr>
                     </thead>
                     <tbody>
                         {rows.map((row) => (
                             <tr key={row.key}>
                                 <td>{row.label}</td>
-                                {innings.map((inning, index) => {
-                                    const inningData =
-                                        rawData[
-                                            inning.replace("Inning ", "")
-                                        ] || {};
-                                    const pitchData =
-                                        inningData[selectedPitchType] || {};
-                                    const value =
-                                        row.key === "averageSpeed"
-                                            ? pitchData.averageSpeed?.toFixed(
-                                                  2
-                                              ) || 0
-                                            : pitchData[row.key] || 0;
-                                    return <td key={index}>{value}</td>;
-                                })}
+                                {renderInningCells(row.key)}
                             </tr>
                         ))}
                     </tbody>
-                </table>{" "}
+                </table>
             </div>
         );
     };
@@ -185,7 +183,7 @@ const NoHitter = () => {
 
             {renderPitchingDataTable(noHitterPitchGridData, "No Hitter")}
             {renderPitchingDataTable(
-                restOfMonthGridData,
+                restMonthGridData,
                 "Rest of Cease's Month"
             )}
         </div>

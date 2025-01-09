@@ -4,7 +4,7 @@ from flask_restful import Api, Resource
 from common.orm_db_config import db
 
 # Endpoint Modules
-from orm_endpoint_modules import PitchDataResource, NoHitterResource, HittersResource, NoHitterRestOfMonthResource
+from orm_endpoint_modules import PitchDataResource, NoHitterResource, HittersResource
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:password@localhost/padres_project_data'
@@ -21,9 +21,7 @@ api.add_resource(Home, "/test", methods=['GET'])
 api.add_resource(PitchDataResource.PitchDataResource,
                  "/pitchdata", methods=['GET'])
 api.add_resource(NoHitterResource.NoHitterResource,
-                 "/pitchdata/no_hitter", methods=['GET'])
-api.add_resource(NoHitterRestOfMonthResource.NoHitterRestOfMonthResource,
-                 "/pitchdata/no_hitter/rest_of_month", methods=['GET'])
+                 "/pitchdata/no_hitter", methods=['POST'])
 api.add_resource(HittersResource.HittersResource,
                  "/pitchdata/padres_batters", methods=['GET', 'POST'])
 

@@ -6,35 +6,39 @@ import "./BatterPerformance.css";
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
 const generateRandomColor = () => {
-    const randomColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-    return randomColor;
+    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
 };
 
 const BatterPerformance = () => {
     const [selectedBatter, setSelectedBatter] = useState("");
     const [battersList, setBattersList] = useState([]);
-    const [totalPitchesSeen, setTotalPitchesSeen] = useState(0);
-    const [metrics, setMetrics] = useState({
-        totalSwings: 0,
-        totalInZoneSwung: 0,
-        totalHitExitSpeed85SwingTrueFoulFalse: 0,
-    });
-    const [pieChartData, setPieChartData] = useState({
+    const [pitchTypeChartData, setPitchTypeChartData] = useState({
         labels: [],
         datasets: [{ data: [], backgroundColor: [] }],
     });
+    const [hitTypePieData, setHitTypePieData] = useState({
+        labels: [],
+        datasets: [{ data: [], backgroundColor: [] }],
+    });
+    const [gridMetrics, setGridMetrics] = useState({
+        totalPitchesSeen: 0,
+        totalSwings: 0,
+        totalInZoneSwung: 0,
+        totalHitExitSpeed90SwingTrueFoulFalse: 0,
+    });
 
+    // get list of batters on mount
     useEffect(() => {
-        // Fetch batters list on mount
         const fetchBatters = async () => {
             const response = await fetch("/pitchdata/padres_batters");
             const data = await response.json();
             setBattersList(data);
-            setSelectedBatter(data[0].batter_id);
+            setSelectedBatter(data[0]?.batter_id || "");
         };
         fetchBatters();
     }, []);
 
+    // fetch data for that batter when selection changes
     useEffect(() => {
         if (!selectedBatter) return;
 
@@ -45,93 +49,105 @@ const BatterPerformance = () => {
                 body: JSON.stringify({ requestHitterData: selectedBatter }),
             });
             const batterData = await response.json();
-            processBatterData(batterData);
-            generatePieChartData(batterData);
+            generateGridData(batterData);
+            generatePieCharts(batterData);
         };
 
         getBatterData();
     }, [selectedBatter]);
 
-    const processBatterData = (batterData) => {
+    const generateGridData = (batterData) => {
         let pitchesSeen = 0;
         let inZoneSwung = 0;
-        let hitExitSpeed85SwingTrueFoulFalse = 0;
+        let hitExitSpeed90SwingTrueFoulFalse = 0;
         let swings = 0;
 
         for (const pitch of batterData) {
             if (pitch.is_pitch === "TRUE") {
                 pitchesSeen++;
 
-                if (pitch.swing === "TRUE") {
-                    swings++;
-                }
+                if (pitch.swing === "TRUE") swings++;
 
-                if (pitch.in_zone === "TRUE" && pitch.swing === "TRUE") {
+                if (pitch.in_zone === "TRUE" && pitch.swing === "TRUE")
                     inZoneSwung++;
-                }
 
                 if (
                     pitch.hit_exit_speed > 90 &&
                     pitch.swing === "TRUE" &&
                     pitch.foul === "FALSE"
-                ) {
-                    hitExitSpeed85SwingTrueFoulFalse++;
-                }
+                )
+                    hitExitSpeed90SwingTrueFoulFalse++;
             }
         }
 
-        setTotalPitchesSeen(pitchesSeen);
-        setMetrics({
+        setGridMetrics({
+            totalPitchesSeen: pitchesSeen,
             totalSwings: swings,
             totalInZoneSwung: inZoneSwung,
-            totalHitExitSpeed85SwingTrueFoulFalse:
-                hitExitSpeed85SwingTrueFoulFalse,
+            totalHitExitSpeed90SwingTrueFoulFalse:
+                hitExitSpeed90SwingTrueFoulFalse,
         });
     };
 
-    const generatePieChartData = (batterData) => {
-        const swingData = batterData.filter((pitch) => pitch.swing === "TRUE");
+    const generatePieCharts = (batterData) => {
+        const pitchTypeCounts = {};
+        const hitTrajectoryCounts = {};
 
-        const pitchTypeCounts = swingData.reduce((acc, pitch) => {
-            acc[pitch.pitch_type] = (acc[pitch.pitch_type] || 0) + 1;
-            return acc;
-        }, {});
+        for (const pitch of batterData) {
+            if (pitch.swing === "TRUE") {
+                pitchTypeCounts[pitch.pitch_type] =
+                    (pitchTypeCounts[pitch.pitch_type] || 0) + 1;
+            }
 
-        const labels = Object.keys(pitchTypeCounts);
-        const data = Object.values(pitchTypeCounts);
-        const backgroundColor = labels.map(generateRandomColor); // generate a random color for each pie slice
+            if (pitch.hit_trajectory) {
+                hitTrajectoryCounts[pitch.hit_trajectory] =
+                    (hitTrajectoryCounts[pitch.hit_trajectory] || 0) + 1;
+            }
+        }
 
-        setPieChartData({
-            labels: labels,
+        const pitchLabels = Object.keys(pitchTypeCounts);
+        const pitchData = Object.values(pitchTypeCounts);
+        const hitLabels = Object.keys(hitTrajectoryCounts);
+        const hitData = Object.values(hitTrajectoryCounts);
+
+        setPitchTypeChartData({
+            labels: pitchLabels,
             datasets: [
                 {
-                    data: data,
-                    backgroundColor: backgroundColor,
+                    data: pitchData,
+                    backgroundColor: pitchData.map(generateRandomColor),
+                },
+            ],
+        });
+
+        setHitTypePieData({
+            labels: hitLabels,
+            datasets: [
+                {
+                    data: hitData,
+                    backgroundColor: hitData.map(generateRandomColor),
                 },
             ],
         });
     };
 
-    const renderPieChart = () => {
+    const renderPieChart = (data, label) => {
+        if (data.datasets[0].data.length === 0) return <></>;
+
         return (
             <div className="pieChartContainer">
-                {" "}
-                <div className="pieChartLabel"></div>
-                {pieChartData.datasets &&
-                    pieChartData.datasets[0].data.length > 0 && (
-                        <Pie
-                            data={pieChartData}
-                            options={{
-                                plugins: {
-                                    title: {
-                                        display: true,
-                                        text: "# of Times Swung at Each Pitch Type",
-                                    },
-                                },
-                                cutout: "60%",
-                            }}
-                        />
-                    )}
+                <Pie
+                    data={data}
+                    options={{
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: label,
+                            },
+                        },
+                        cutout: "60%",
+                    }}
+                />
             </div>
         );
     };
@@ -148,19 +164,21 @@ const BatterPerformance = () => {
                 <tbody>
                     <tr>
                         <td>Pitches Seen</td>
-                        <td>{totalPitchesSeen}</td>
+                        <td>{gridMetrics.totalPitchesSeen}</td>
                     </tr>
                     <tr>
                         <td>Swings</td>
-                        <td>{metrics.totalSwings}</td>
+                        <td>{gridMetrics.totalSwings}</td>
                     </tr>
                     <tr>
                         <td>Swung at a pitch in the zone</td>
-                        <td>{metrics.totalInZoneSwung}</td>
+                        <td>{gridMetrics.totalInZoneSwung}</td>
                     </tr>
                     <tr>
                         <td>Balls in play with {">"} 90 exit speed</td>
-                        <td>{metrics.totalHitExitSpeed85SwingTrueFoulFalse}</td>
+                        <td>
+                            {gridMetrics.totalHitExitSpeed90SwingTrueFoulFalse}
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -184,7 +202,13 @@ const BatterPerformance = () => {
                 </select>
             </div>
             {renderHitterDataTable()}
-            {renderPieChart()}
+            <div className="pieChartsOuterContainer">
+                {renderPieChart(
+                    pitchTypeChartData,
+                    "# of Times Swung at Each Pitch Type"
+                )}
+                {renderPieChart(hitTypePieData, "# of Each Hit Type")}
+            </div>
         </div>
     );
 };
