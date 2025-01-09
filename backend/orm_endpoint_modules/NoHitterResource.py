@@ -10,8 +10,8 @@ bp = Blueprint('views', __name__)
 class NoHitterResource(Resource):
     def get(self):
         rows = PitchData.query.filter(
-            PitchData.pitcher_name_last == "Cease",
-            PitchData.batter_team == "Washington Nationals",
+            PitchData.pitcher_bam_id == 656302, #cease
+            PitchData.batter_team_bam_id == 120, #nationals
         ).all()
 
         result = [row2dict(row) for row in rows]

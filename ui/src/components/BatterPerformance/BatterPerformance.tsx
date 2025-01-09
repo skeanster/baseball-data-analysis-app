@@ -38,16 +38,18 @@ const BatterPerformance = () => {
     useEffect(() => {
         if (!selectedBatter) return;
 
-        fetch("/pitchdata/padres_batters", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ requestHitterData: selectedBatter }),
-        })
-            .then((res) => res.json())
-            .then((batterData) => {
-                processBatterData(batterData);
-                generatePieChartData(batterData);
+        const getBatterData = async () => {
+            const response = await fetch("/pitchdata/padres_batters", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ requestHitterData: selectedBatter }),
             });
+            const batterData = await response.json();
+            processBatterData(batterData);
+            generatePieChartData(batterData);
+        };
+
+        getBatterData();
     }, [selectedBatter]);
 
     const processBatterData = (batterData) => {

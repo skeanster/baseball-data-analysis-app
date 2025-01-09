@@ -10,7 +10,7 @@ class HittersResource(Resource):
         rows = PitchData.query.with_entities(
             PitchData.batter_bam_id, PitchData.batter_name_last
         ).filter(
-            PitchData.batter_team_bam_id == 135
+            PitchData.batter_team_bam_id == 135 #padres
         ).distinct(
             PitchData.batter_bam_id
         ).all()
@@ -29,7 +29,7 @@ class HittersResource(Resource):
 
         rows = PitchData.query.filter(
             PitchData.batter_bam_id == hitter_data,
-            PitchData.batter_team_bam_id == 135,
+            PitchData.batter_team_bam_id == 135, #padres
         ).all()
 
         result = [row2dict(row) for row in rows]

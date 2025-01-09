@@ -25,45 +25,28 @@ const generateInningsList = () => {
     return innings;
 };
 
-const NoHitter = ({ updateAppPage }) => {
+const NoHitter = () => {
     const [restOfMonthGridData, setRestOfMonthGridData] = useState({});
     const [noHitterPitchGridData, setNoHitterPitchGridData] = useState({});
     const [selectedPitchType, setSelectedPitchType] = useState("SL");
     const [pitchTypes, setPitchTypes] = useState([]);
 
-    const fetchAndSetData = (url, setData) => {
-        const getPitchTypesUsed = (pitchData) => {
-            const pitchesUsed = new Set(pitchTypes);
-            for (const pitch of pitchData) {
-                if (pitch.pitch_type !== null) {
-                    pitchesUsed.add(pitch.pitch_type);
+    const fetchAndSetData = async (url, setData) => {
+        const response = await fetch(url);
+        const pitchData = await response.json();
+        const pitchTypeStats: PitchTypeStats = compilePitchTypeData(pitchData);
+
+        Object.values(pitchTypeStats).forEach((inningData) => {
+            Object.values(inningData).forEach((data) => {
+                if (data.countSpeed > 0) {
+                    data.averageSpeed = data.totalSpeed / data.countSpeed;
+                    data.averageSpinRate = Math.round(
+                        data.totalSpinRate / data.countSpeed
+                    );
                 }
-            }
-
-            setPitchTypes((prevPitchTypes) => [
-                ...new Set([...prevPitchTypes, ...pitchesUsed]),
-            ]);
-        };
-
-        fetch(url)
-            .then((res) => res.json())
-            .then((pitchData) => {
-                const pitchTypeStats: PitchTypeStats =
-                    compilePitchTypeData(pitchData);
-                Object.values(pitchTypeStats).forEach((inningData) => {
-                    Object.values(inningData).forEach((data) => {
-                        if (data.countSpeed > 0) {
-                            data.averageSpeed =
-                                data.totalSpeed / data.countSpeed;
-                            data.averageSpinRate = Math.round(
-                                data.totalSpinRate / data.countSpeed
-                            );
-                        }
-                    });
-                });
-                setData(pitchTypeStats);
-                getPitchTypesUsed(pitchData);
             });
+        });
+        setData(pitchTypeStats);
     };
 
     useEffect(() => {
@@ -76,6 +59,7 @@ const NoHitter = ({ updateAppPage }) => {
 
     const compilePitchTypeData = (pitchData) => {
         const stats = {};
+        const pitchesUsed = new Set(pitchTypes);
 
         for (const pitch of pitchData) {
             const {
@@ -119,7 +103,15 @@ const NoHitter = ({ updateAppPage }) => {
             pitchStats.totalSpeed += rel_speed;
             pitchStats.totalSpinRate += spin_rate;
             pitchStats.countSpeed++;
+
+            if (pitch.pitch_type !== null) {
+                pitchesUsed.add(pitch.pitch_type);
+            }
         }
+
+        setPitchTypes((prevPitchTypes) => [
+            ...new Set([...prevPitchTypes, ...pitchesUsed]),
+        ]);
 
         return stats;
     };
