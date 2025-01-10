@@ -11,13 +11,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:password@lo
 db.init_app(app)
 api = Api(app)
 
-class Home(Resource):
-    def get(self):
-        result = {"ryan": "Welcome to my Python backend!"}
-        return jsonify(result)
 
-
-api.add_resource(Home, "/test", methods=['GET'])
 api.add_resource(PitchDataResource.PitchDataResource,
                  "/pitchdata", methods=['GET'])
 api.add_resource(NoHitterResource.NoHitterResource,
@@ -26,4 +20,4 @@ api.add_resource(HittersResource.HittersResource,
                  "/pitchdata/padres_batters", methods=['GET', 'POST'])
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5050)  # Enable debug mode and set the port
+    app.run(debug=True, port=5050)

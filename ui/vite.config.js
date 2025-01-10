@@ -9,7 +9,7 @@ export default defineConfig({
       '/pitchdata': {
         target: 'http://127.0.0.1:5050', // Flask server running on port 5050
         changeOrigin: true,
-        secure: false, // Set to false if using http instead of https
+        secure: false,
       },
     },
   },
