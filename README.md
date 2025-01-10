@@ -1,6 +1,6 @@
 # baseball-data-analysis-app
 
-Fullstack application build using: MySQL Database, Python/Flask Backend, and React frontend
+Fullstack application built using: MySQL Database, Python/Flask Backend, and React frontend
 
 # Setup instructions:
 
