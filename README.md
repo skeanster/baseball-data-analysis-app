@@ -11,7 +11,7 @@ UI:
 -   run 'npm i'
 -   run 'npm run dev'
 
-Backend(Automatic):
+Backend:
 
 -   open a new terminal window
 -   run 'cd backend'
